@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Game Buzzer Status</title>
+    <style>
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between; /* Center the columns and button vertically */
+    align-items: center; /* Center everything horizontally */
+}
+
+.columns {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    flex-grow: 1;
+}
+
+.column {
+    justify-content: center;
+    flex: 1;
+    margin: 5px;
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    background-color: #AED9E0;
+    border: 2px solid teal;
+    border-radius: 10px;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.buzzer {
+    font-size: 90px;
+
+    align-self: center;
+    
+    border: 4px solid white;
+    border-radius: 50%;
+    width: 110px;
+
+}
+
+
+#resetButton {
+    height: 50px;
+    width: 100%;
+    margin-top: 5px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+</style>
+
+
+
+</head>
+<body>
+    <div class='container'>
+        <div class='columns'>
+            <div class='column' style='background-color: rgb(174, 217, 224);' inactive-color='rgb(174, 217, 224)' active-color='rgb(52, 152, 219)' active='false'>
+                <div class='buzzer' id='buzzer1'>
+                    1
+                </div>
+            </div>
+            <div class='column' style='background-color: rgb(184, 224, 168);' inactive-color='rgb(184, 224, 168)' active-color='rgb(46, 204, 113)' active='false'>
+                <div class='buzzer' id='buzzer2'>
+                    2
+                </div>
+            </div>
+            <div class='column' style='background-color: rgb(186 191 191);'  inactive-color='rgb(186 191 191)' active-color='rgb(255, 255, 255)' active='false'>
+                <div class='buzzer' id='buzzer3'>
+                    3
+                </div>
+            </div>
+            <div class='column' style='background-color: rgb(255, 107, 107);'  inactive-color='rgb(255, 107, 107)' active-color='rgb(231, 76, 60)' active='false'>
+                <div class='buzzer' id='buzzer4'>
+                    4
+                </div>
+            </div>
+            <div class='column' style='background-color: rgb(245, 243, 132);'  inactive-color='rgb(245, 243, 132)' active-color='rgb(241, 196, 15)' active='false'>
+                <div class='buzzer' id='buzzer5'>
+                    5
+                </div>
+            </div>
+        </div>
+        
+            <button id='resetButton'>Reset</button>
+    </div>
+
+</body>
+
+<script>
+
+const websocket = new WebSocket(
+    `ws://${window.location.host}/ws`,
+    'polling',
+);
+
+const buzzers = document.querySelectorAll('.column');
+
+buzzers.forEach((buzzer, index) => {
+    buzzer.addEventListener('click', () => {
+        const column = buzzer.closest('.column');
+        const isActive = column.isActive;
+
+        if (isActive) {
+            column.isActive = false;
+            column.style.backgroundColor = column.getAttribute('inactive-color');
+            fetch('/off?id='+index, {
+                method: 'GET'
+            });
+        } else {
+            fetch('/on?id='+index, {
+                method: 'GET'
+            });
+            column.isActive = true;
+            column.style.backgroundColor = column.getAttribute('active-color');
+        }
+    });
+});
+
+const resetButton = document.getElementById('resetButton');
+resetButton.addEventListener('click', () => {
+    buzzers.forEach((buzzer) => {
+        const column = buzzer.closest('.column');
+        column.isActive = false;
+        column.style.backgroundColor = column.getAttribute('inactive-color');
+    });
+    fetch('/reset', {
+        method: 'GET'
+    })
+    .then((response) => {
+        console.log('Reset request sent.');
+    })
+    .catch((error) => {
+        console.error('Error sending reset request:', error);
+    });
+});
+
+websocket.onmessage = (event) => {
+  console.log(event.data);
+  console.log(new Date()/1);
+  if (event.data == "reset") {
+    buzzers.forEach((buzzer) => {
+        const column = buzzer.closest('.column');
+        column.isActive = false;
+        column.style.backgroundColor = column.getAttribute('inactive-color');
+    });
+  }
+  if (event.data.split(' ')[0] == 'buzz') {
+    buzzers[+event.data.split(' ')[1]].isActive = true;
+    buzzers[+event.data.split(' ')[1]].style.backgroundColor = buzzers[+event.data.split(' ')[1]].getAttribute('active-color');
+  }
+};
+
+
+</script>
+
+</html>
